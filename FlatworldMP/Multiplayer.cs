@@ -7,6 +7,7 @@ using UnityEngine;
 using MelonLoader;
 using HarmonyLib;
 using System.Collections;
+using Rewired;
 
 namespace FlatworldMP
 {
@@ -20,11 +21,16 @@ namespace FlatworldMP
         private GameObject secondPlayerObj;
         private PlayerCTRL secondPlayerCtrl;
 
+        private GameObject secondCamera;
+
         private bool firstPlayerCanAttack = true;
         private bool secondPlayerCanAttack = true;
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
+            if (sceneName == "Intro" || sceneName == "SelectFile" || sceneName == "TitleScreen" || sceneName == "Congititlescreen")
+                return;
+
             if (GetPlayerData() && secondPlayerObj == null)
             {
                 SpawnSecondPlayer();
@@ -109,12 +115,39 @@ namespace FlatworldMP
 
         private bool SpawnSecondPlayer() {
             secondPlayerObj = GameObject.Instantiate(playerObj);
+
             if (secondPlayerObj == null) return false;
+
             secondPlayerObj.name = "SecondPlayer";
             secondPlayerCtrl = secondPlayerObj.GetComponent<PlayerCTRL>();
 
             //Hardcode walkSpeed to match runSpeed.
             Traverse.Create(secondPlayerCtrl).Field("walkSpeed").SetValue(5);
+
+            GameObject target = null;
+
+            foreach (Transform g in secondPlayerObj.GetComponentsInChildren<Transform>())
+            {
+                if(g.name == "CubeCamPlayerND")
+                {
+                    target = g.gameObject;
+                    break;
+                }
+            }
+
+            if(Camera.main != null)
+            {
+                secondCamera = GameObject.Instantiate(Camera.main.gameObject);
+                Camera.main.rect = new Rect(0, 0, 0.5f, 1);
+                secondCamera.GetComponent<Camera>().rect = new Rect(0.5f, 0, 0.5f, 1);
+
+                CameraFollow secondCameraFollow = secondCamera.GetComponent<CameraFollow>();
+
+                secondCamera.name = "SecondCamera";
+            }
+
+
+
             return true;
         }
 
@@ -149,21 +182,6 @@ namespace FlatworldMP
 
     }
 
-    public class ClassGetPrivateVariables {
-
-        PlayerCTRL _playerCTRL;
-
-        public ClassGetPrivateVariables(PlayerCTRL playerCTRL)
-        {
-            _playerCTRL = playerCTRL;
-        }
-
-        public bool GetHaciendoMagia()
-        {
-            return (bool)Traverse.Create(_playerCTRL).Field("haciendoMagia").GetValue();
-        }
-    }
-
 
     [HarmonyLib.HarmonyPatch(typeof(PlayerCTRL), "getInputKeyboard")]
     static class InputPatch
@@ -176,9 +194,8 @@ namespace FlatworldMP
 
             if (__instance.gameObject.name == "SecondPlayer")
             {
-                ClassGetPrivateVariables classGetPrivateVariables = new ClassGetPrivateVariables(__instance);
 
-                if (classGetPrivateVariables.GetHaciendoMagia())
+                if ((bool)Traverse.Create(__instance).Field("haciendoMagia").GetValue())
                     return false;
                 if (Input.GetKey(KeyCode.K))
                 {
@@ -228,6 +245,50 @@ namespace FlatworldMP
         }
 
     }
+
+    [HarmonyLib.HarmonyPatch(typeof(CameraFollow), "setObjetivo")]
+    static class CameraPatch
+    {
+        static bool Prefix(GameObject o, CameraFollow __instance)
+        {
+            if(__instance.name == "SecondCamera")
+            {
+                
+                Transform transform = o.transform.Find("NoDestruir/CubeCamPlayerND");
+                if (transform != null)
+                {
+                    Traverse.Create(__instance).Field("objetivo").SetValue(transform.gameObject);
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+    }
+
+    [HarmonyLib.HarmonyPatch(typeof(CameraFollow), "reiniciar")]
+    static class ResetCameraPatch
+    {
+        static bool Prefix(CameraFollow __instance)
+        {
+            if (__instance.name == "SecondCamera")
+            {
+
+                __instance.reiniciarObjetivo(GameObject.Find("SecondPlayer"));
+                if (__instance.centroRotacion != null)
+                {
+                    __instance.setVelocidadCamara(30f);
+                }
+                return false;
+            }
+
+            return true;
+        }
+
+    }
+
+    
 
 }
 
