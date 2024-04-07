@@ -23,7 +23,6 @@ namespace FlatworldMP
         private bool firstPlayerCanAttack = true;
         private bool secondPlayerCanAttack = true;
 
-
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             if (GetPlayerData() && secondPlayerObj == null)
@@ -97,6 +96,14 @@ namespace FlatworldMP
                 codigoMagiarMethod.Invoke(secondPlayerCtrl, null);
             }
 
+
+            if (!Input.GetKey(KeyCode.P))
+            {
+                var codigoDesMagiarMethod = AccessTools.Method(typeof(PlayerCTRL), "EndMagic");
+
+                codigoDesMagiarMethod.Invoke(secondPlayerCtrl, null);        
+            };
+
         }
 
 
@@ -142,7 +149,20 @@ namespace FlatworldMP
 
     }
 
+    public class ClassGetPrivateVariables {
 
+        PlayerCTRL _playerCTRL;
+
+        public ClassGetPrivateVariables(PlayerCTRL playerCTRL)
+        {
+            _playerCTRL = playerCTRL;
+        }
+
+        public bool GetHaciendoMagia()
+        {
+            return (bool)Traverse.Create(_playerCTRL).Field("haciendoMagia").GetValue();
+        }
+    }
 
 
     [HarmonyLib.HarmonyPatch(typeof(PlayerCTRL), "getInputKeyboard")]
@@ -156,6 +176,10 @@ namespace FlatworldMP
 
             if (__instance.gameObject.name == "SecondPlayer")
             {
+                ClassGetPrivateVariables classGetPrivateVariables = new ClassGetPrivateVariables(__instance);
+
+                if (classGetPrivateVariables.GetHaciendoMagia())
+                    return false;
                 if (Input.GetKey(KeyCode.K))
                 {
                     array[1] = -1f;
