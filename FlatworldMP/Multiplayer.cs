@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using MelonLoader;
 using HarmonyLib;
+using System.Collections;
 
 namespace FlatworldMP
 {
@@ -18,6 +19,9 @@ namespace FlatworldMP
 
         private GameObject secondPlayerObj;
         private PlayerCTRL secondPlayerCtrl;
+
+        private bool firstPlayerCanAttack = true;
+        private bool secondPlayerCanAttack = true;
 
 
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
@@ -44,7 +48,7 @@ namespace FlatworldMP
                 LoggerInstance.Msg("Second player spawned");
             }
 
-            if(secondPlayerObj != null)
+            if (secondPlayerObj != null)
                 Traverse.Create(secondPlayerObj).Field("warps").SetValue(null);
 
 
@@ -54,11 +58,16 @@ namespace FlatworldMP
 
         private void FirstPlayerController()
         {
-            if (Input.GetKeyDown(KeyCode.X) && playerObj != null && !Input.GetKey(KeyCode.C))
+            if (Input.GetKeyDown(KeyCode.X) && playerObj != null && !Input.GetKey(KeyCode.C) && firstPlayerCanAttack)
             {
-                var codigoAtacarMethod = AccessTools.Method(typeof(PlayerCTRL), "codigoAtacar") ;
+                firstPlayerCanAttack = false;
+
+                var codigoAtacarMethod = AccessTools.Method(typeof(PlayerCTRL), "codigoAtacar");
 
                 codigoAtacarMethod.Invoke(playerCtrl, null);
+
+                Task.Delay(TimeSpan.FromMilliseconds(300)).ContinueWith(o => { AttackDelay(ref firstPlayerCanAttack); });
+
             }
 
             if (Input.GetKeyDown(KeyCode.C) && playerObj != null && !Input.GetKey(KeyCode.X))
@@ -71,11 +80,14 @@ namespace FlatworldMP
 
         private void SecondPlayerController()
         {
-            if (Input.GetKeyDown(KeyCode.O) && secondPlayerObj != null && !Input.GetKey(KeyCode.P))
+            if (Input.GetKeyDown(KeyCode.O) && secondPlayerObj != null && !Input.GetKey(KeyCode.P) && secondPlayerCanAttack)
             {
+                secondPlayerCanAttack = false;
                 var codigoAtacarMethod = AccessTools.Method(typeof(PlayerCTRL), "codigoAtacar");
 
                 codigoAtacarMethod.Invoke(secondPlayerCtrl, null);
+
+                Task.Delay(TimeSpan.FromMilliseconds(300)).ContinueWith(o => { AttackDelay(ref secondPlayerCanAttack); });
             }
 
             if (Input.GetKeyDown(KeyCode.P) && secondPlayerObj != null && !Input.GetKey(KeyCode.O))
@@ -90,7 +102,7 @@ namespace FlatworldMP
 
         private bool SpawnSecondPlayer() {
             secondPlayerObj = GameObject.Instantiate(playerObj);
-            if(secondPlayerObj == null) return false;
+            if (secondPlayerObj == null) return false;
             secondPlayerObj.name = "SecondPlayer";
             secondPlayerCtrl = secondPlayerObj.GetComponent<PlayerCTRL>();
 
@@ -122,6 +134,12 @@ namespace FlatworldMP
             if (playerModels.Count > 0) return true;
             else return false;
         }
+
+        void AttackDelay(ref bool atk)
+        {
+            atk = true;
+        }
+
     }
 
 
@@ -187,57 +205,6 @@ namespace FlatworldMP
 
     }
 
-    [HarmonyLib.HarmonyPatch(typeof(PlayerCTRL), "OnTriggerEnter")]
-    static class TriggerEnterPatch
-    {
-
-        static bool Prefix(Collider other, PlayerCTRL __instance)
-        {
-
-            if (__instance.gameObject.name == "SecondPlayer")
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-    }
-
-    [HarmonyLib.HarmonyPatch(typeof(PlayerCTRL), "OnTriggerEnter")]
-    static class TriggerExitPatch
-    {
-
-        static bool Prefix(Collider other, PlayerCTRL __instance)
-        {
-
-            if (__instance.gameObject.name == "SecondPlayer")
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-    }
-
-    [HarmonyLib.HarmonyPatch(typeof(PlayerCTRL), "OnTriggerEnter")]
-    static class TriggerStayPatch
-    {
-
-        static bool Prefix(Collider other, PlayerCTRL __instance)
-        {
-
-            if (__instance.gameObject.name == "SecondPlayer")
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-    }
-
-
-
 }
+
+
