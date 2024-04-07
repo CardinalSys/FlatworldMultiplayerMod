@@ -26,6 +26,9 @@ namespace FlatworldMP
         private bool firstPlayerCanAttack = true;
         private bool secondPlayerCanAttack = true;
 
+        private GameObject firstCamera;
+
+
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
             if (sceneName == "Intro" || sceneName == "SelectFile" || sceneName == "TitleScreen" || sceneName == "Congititlescreen")
@@ -39,8 +42,6 @@ namespace FlatworldMP
 
         public override void OnUpdate()
         {
-
-
             FirstPlayerController();
             SecondPlayerController();
 
@@ -56,10 +57,11 @@ namespace FlatworldMP
             if (secondPlayerObj != null)
                 Traverse.Create(secondPlayerObj).Field("warps").SetValue(null);
 
-
+            CheckForSplitScreen();
 
             base.OnUpdate();
         }
+
 
         private void FirstPlayerController()
         {
@@ -85,7 +87,7 @@ namespace FlatworldMP
 
         private void SecondPlayerController()
         {
-            if (Input.GetKeyDown(KeyCode.O) && secondPlayerObj != null && !Input.GetKey(KeyCode.P) && secondPlayerCanAttack)
+            if (Input.GetKeyDown(KeyCode.Keypad8) && secondPlayerObj != null && !Input.GetKey(KeyCode.Asterisk) && secondPlayerCanAttack)
             {
                 secondPlayerCanAttack = false;
                 var codigoAtacarMethod = AccessTools.Method(typeof(PlayerCTRL), "codigoAtacar");
@@ -95,7 +97,7 @@ namespace FlatworldMP
                 Task.Delay(TimeSpan.FromMilliseconds(300)).ContinueWith(o => { AttackDelay(ref secondPlayerCanAttack); });
             }
 
-            if (Input.GetKeyDown(KeyCode.P) && secondPlayerObj != null && !Input.GetKey(KeyCode.O))
+            if (Input.GetKeyDown(KeyCode.Asterisk) && secondPlayerObj != null && !Input.GetKey(KeyCode.Slash))
             {
                 var codigoMagiarMethod = AccessTools.Method(typeof(PlayerCTRL), "codigoMagiar");
 
@@ -103,7 +105,7 @@ namespace FlatworldMP
             }
 
 
-            if (!Input.GetKey(KeyCode.P))
+            if (!Input.GetKey(KeyCode.Asterisk))
             {
                 var codigoDesMagiarMethod = AccessTools.Method(typeof(PlayerCTRL), "EndMagic");
 
@@ -137,11 +139,9 @@ namespace FlatworldMP
 
             if(Camera.main != null)
             {
-                secondCamera = GameObject.Instantiate(Camera.main.gameObject);
-                Camera.main.rect = new Rect(0, 0, 0.5f, 1);
-                secondCamera.GetComponent<Camera>().rect = new Rect(0.5f, 0, 0.5f, 1);
 
-                CameraFollow secondCameraFollow = secondCamera.GetComponent<CameraFollow>();
+                firstCamera = Camera.main.gameObject;
+                secondCamera = GameObject.Instantiate(firstCamera);
 
                 secondCamera.name = "SecondCamera";
             }
@@ -175,9 +175,36 @@ namespace FlatworldMP
             else return false;
         }
 
-        void AttackDelay(ref bool atk)
+        private void AttackDelay(ref bool atk)
         {
             atk = true;
+        }
+
+        private void CheckForSplitScreen()
+        {
+            float x = Mathf.Abs(playerObj.transform.position.x - secondPlayerObj.transform.position.x);
+            float z = Mathf.Abs(playerObj.transform.position.z - secondPlayerObj.transform.position.z);
+
+            if (x >= 3.2f || z > 4.9f)
+                ToggleSplitScreen(true);
+            else
+                ToggleSplitScreen(false);
+
+        }
+
+        private void ToggleSplitScreen(bool state)
+        {
+            if(state && !secondCamera.activeSelf)
+            {
+                secondCamera.SetActive(true);
+                firstCamera.GetComponent<Camera>().rect = new Rect(0, 0, 0.5f, 1);
+                secondCamera.GetComponent<Camera>().rect = new Rect(0.5f, 0, 0.5f, 1);
+            }
+            else if (!state && secondCamera.activeSelf)
+            {
+                secondCamera.SetActive(false);
+                firstCamera.GetComponent<Camera>().rect = new Rect(0, 0, 1, 1);
+            }
         }
 
     }
@@ -197,19 +224,19 @@ namespace FlatworldMP
 
                 if ((bool)Traverse.Create(__instance).Field("haciendoMagia").GetValue())
                     return false;
-                if (Input.GetKey(KeyCode.K))
+                if (Input.GetKey(KeyCode.Keypad5))
                 {
                     array[1] = -1f;
                 }
-                if (Input.GetKey(KeyCode.I))
+                if (Input.GetKey(KeyCode.Keypad8))
                 {
                     array[1] = 1f;
                 }
-                if (Input.GetKey(KeyCode.J))
+                if (Input.GetKey(KeyCode.Keypad4))
                 {
                     array[0] = -1f;
                 }
-                if (Input.GetKey(KeyCode.L))
+                if (Input.GetKey(KeyCode.Keypad6))
                 {
                     array[0] = 1f;
                 }
