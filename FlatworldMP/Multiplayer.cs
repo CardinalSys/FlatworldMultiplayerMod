@@ -9,6 +9,8 @@ using HarmonyLib;
 using System.Collections;
 using Rewired;
 using static UnityEngine.GraphicsBuffer;
+using static System.Net.Mime.MediaTypeNames;
+using System.Reflection;
 
 namespace FlatworldMP
 {
@@ -31,24 +33,25 @@ namespace FlatworldMP
 
         public string SecondPlayerCharacter;
 
+        private bool usingMagic = false;
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
-            if (sceneName == "Default" ||sceneName == "Intro" || sceneName == "SelectFile" || sceneName == "TitleScreen" || sceneName == "Congititlescreen")
+            if (sceneName == "Default" || sceneName == "Intro" || sceneName == "SelectFile" || sceneName == "TitleScreen" || sceneName == "Configtitlescreen" || sceneName == "BootGame")
             {
-                if(secondPlayerObj != null)
+                if (secondPlayerObj != null)
                     GameObject.Destroy(secondPlayerObj);
                 return;
             }
-                
 
+            LoggerInstance.Msg(sceneName);
             if (GetPlayerData() && secondPlayerObj == null)
             {
-                SpawnSecondPlayer();
+                Task.Delay(TimeSpan.FromSeconds(1)).ContinueWith(o => { SpawnSecondPlayer(); });
             }
 
-            if(secondPlayerObj != null)
+            if (secondPlayerObj != null)
             {
-                Task.Delay(TimeSpan.FromSeconds(1)).ContinueWith(o => { ResetSecondPlayerPosition(); });    
+                Task.Delay(TimeSpan.FromSeconds(1.1)).ContinueWith(o => { ResetSecondPlayerPosition(); });
             }
         }
 
@@ -62,8 +65,6 @@ namespace FlatworldMP
         {
             FirstPlayerController();
             SecondPlayerController();
-
-
 
             CheckForSplitScreen();
 
@@ -110,23 +111,38 @@ namespace FlatworldMP
                 var codigoMagiarMethod = AccessTools.Method(typeof(PlayerCTRL), "codigoMagiar");
 
                 codigoMagiarMethod.Invoke(secondPlayerCtrl, null);
+
+                usingMagic = true;
             }
 
 
-            if (!Input.GetKey(KeyCode.P))
+            if (!Input.GetKey(KeyCode.P) && usingMagic)
             {
+                usingMagic = false;
                 var codigoDesMagiarMethod = AccessTools.Method(typeof(PlayerCTRL), "EndMagic");
 
-                codigoDesMagiarMethod.Invoke(secondPlayerCtrl, null);        
-            };
+                codigoDesMagiarMethod.Invoke(secondPlayerCtrl, null);
+
+                GameObject.Destroy(GameObject.Find("SecondPlayerObj_CollMag_Calentar"));
+
+                var codigoDesposeerMethod = AccessTools.Method(typeof(PlayerCTRL), "EndMagic");
+
+                codigoDesMagiarMethod.Invoke(secondPlayerCtrl, null);
+
+                //Desposeer objeto
+            }
 
         }
 
 
-        private bool SpawnSecondPlayer() {
-            secondPlayerObj = GameObject.Instantiate(playerObj);
 
-            GameObject.DontDestroyOnLoad(secondPlayerObj);
+
+        private bool SpawnSecondPlayer()
+        {
+
+            secondPlayerObj = GameObject.Instantiate(playerObj);
+            secondPlayerObj.SetActive(true);
+
 
             if (secondPlayerObj == null) return false;
 
@@ -140,20 +156,18 @@ namespace FlatworldMP
 
             foreach (Transform g in secondPlayerObj.GetComponentsInChildren<Transform>())
             {
-                if(g.name == "CubeCamPlayerND")
+                if (g.name == "CubeCamPlayerND")
                 {
                     target = g.gameObject;
                     break;
                 }
             }
 
-            if(Camera.main != null)
+            if (Camera.main != null)
             {
 
                 firstCamera = Camera.main.gameObject;
                 secondCamera = GameObject.Instantiate(firstCamera);
-
-                GameObject.DontDestroyOnLoad(secondCamera);
 
                 secondCamera.name = "SecondCamera";
             }
@@ -166,7 +180,9 @@ namespace FlatworldMP
 
         private bool GetPlayerData()
         {
-            playerObj = GameObject.Find("obj_player");
+            if (playerObj != null)
+                return true;
+            playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj == null)
                 return false;
             playerCtrl = playerObj.GetComponent<PlayerCTRL>();
@@ -193,25 +209,20 @@ namespace FlatworldMP
 
         private void CheckForSplitScreen()
         {
-            LoggerInstance.Msg("CheckForSplitScreen called.");
             if (playerObj == null || secondPlayerObj == null)
             {
-                LoggerInstance.Msg($"playerObj or secondPlayerObj is null. playerObj: {playerObj}, secondPlayerObj: {secondPlayerObj}");
                 return;
             }
 
             float x = Mathf.Abs(playerObj.transform.position.x - secondPlayerObj.transform.position.x);
             float z = Mathf.Abs(playerObj.transform.position.z - secondPlayerObj.transform.position.z);
-            LoggerInstance.Msg($"X Distance: {x}, Z Distance: {z}");
 
             if (x >= 3.2f || z > 4.9f)
             {
-                LoggerInstance.Msg("Enabling Split Screen");
                 ToggleSplitScreen(true);
             }
             else
             {
-                LoggerInstance.Msg("Disabling Split Screen");
                 ToggleSplitScreen(false);
             }
         }
@@ -302,14 +313,15 @@ namespace FlatworldMP
                     if (c.name.StartsWith("Aki"))
                     {
                         colliderMagia = (GameObject)UnityEngine.Object.Instantiate(Resources.Load("Personajes/000_Aki/obj_CollMag_Calentar"));
+                        colliderMagia.name = "SecondPlayerObj_CollMag_Calentar";
                         colliderMagia.transform.position = __instance.transform.position;
                         Traverse.Create(__instance).Field("haciendoMagia").SetValue(true);
                         break;
                     }
                     else if (c.name.StartsWith("Prins"))
                     {
-                        colliderMagia = (GameObject)UnityEngine.Object.Instantiate(Resources.Load("Personajes/004_Prins/obj_CollMag_Telequinesia"));
-                        colliderMagia.transform.position = __instance.transform.position + new Vector3(0f, 0.5f, 0f);
+                        colliderMagia = UnityEngine.Object.Instantiate(Resources.Load("Personajes/004_Prins/obj_CollMag_Telequinesia"), __instance.transform.position + new Vector3(0, 0.5f, 0) + __instance.transform.forward, __instance.transform.rotation) as GameObject;
+                        colliderMagia.name = "SecondPlayerObj_CollMag_Telequinesia";
                         Traverse.Create(__instance).Field("haciendoMagia").SetValue(true);
                         break;
                     }
@@ -363,6 +375,7 @@ namespace FlatworldMP
 
     }
 
+
     [HarmonyLib.HarmonyPatch(typeof(MotherBrain), "get_pulsa_MAGIA_down")]
     static class MagicPatch
     {
@@ -378,9 +391,9 @@ namespace FlatworldMP
     {
         static bool Prefix(GameObject o, CameraFollow __instance)
         {
-            if(__instance.name == "SecondCamera")
+            if (__instance.name == "SecondCamera")
             {
-                
+
                 Transform transform = o.transform.Find("NoDestruir/CubeCamPlayerND");
                 if (transform != null)
                 {
@@ -415,8 +428,95 @@ namespace FlatworldMP
 
     }
 
-    
+    [HarmonyLib.HarmonyPatch(typeof(TelequinesiaMover), "getInputKeyboard")]
+    static class TelequinesisKeyboardPatch
+    {
+        static bool Prefix(TelequinesiaMover __instance, ref float[] __result)
+        {
+            if (__instance.gameObject.name.Contains("SecondPlayer"))
+            {
+                float[] array = new float[2];
+                if (Input.GetKey(KeyCode.K))
+                {
+                    array[1] = -1f;
+                }
+                if (Input.GetKey(KeyCode.I))
+                {
+                    array[1] = 1f;
+                }
+                if (Input.GetKey(KeyCode.J))
+                {
+                    array[0] = -1f;
+                }
+                if (Input.GetKey(KeyCode.L))
+                {
+                    array[0] = 1f;
+                }
 
+
+                __result = array;
+
+                return false;
+            }
+
+            return true;
+        }
+
+    }
+
+    [HarmonyLib.HarmonyPatch(typeof(TelequinesiaMover), "Start")]
+    static class TelequinesisStartPatch
+    {
+        public static void Postfix(TelequinesiaMover __instance)
+        {
+
+        }
+
+    }
+
+
+    [HarmonyLib.HarmonyPatch(typeof(TelequinesiaMover), "Desposeer")]
+    static class TelequinesisDesposeerPatch
+    {
+        public static bool Prefix(TelequinesiaMover __instance)
+        {
+            return true;
+        }
+
+    }
+
+
+    [HarmonyLib.HarmonyPatch(typeof(CollMag_Teleq), "Start")]
+    static class CollMag_TeleqStartPatch
+    {
+        public static void Postfix(CollMag_Teleq __instance)
+        {
+            if (!__instance.name.Contains("SecondPlayer"))
+                return;
+
+            __instance.player = GameObject.Find("SecondPlayer").GetComponent<PlayerCTRL>();
+
+            Traverse.Create(__instance).Field("dir").SetValue(__instance.player.getDirection());
+            
+        }
+
+    }
+
+    [HarmonyPatch(typeof(CollMag_Teleq), "OnTriggerEnter")]
+    public static class OnTriggerEnterPatch
+    {
+        public static void Postfix(Collider col, CollMag_Teleq __instance)
+        {
+            if (__instance.name.Contains("SecondPlayer"))
+            {
+                if(!col.name.Contains("SecondPlayer"))
+                    col.name += "SecondPlayer";
+            }
+            else
+            {
+                col.name = col.name.Replace("SecondPlayer", "");
+            }
+
+        }
+    }
 }
-
-
