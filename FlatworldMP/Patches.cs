@@ -84,8 +84,11 @@ namespace FlatworldMP
                         Utilites.SetVariable(__instance, "colliderMagia", colliderMagia);
                         Utilites.SetVariable(__instance, "haciendoMagia", true);
                         break;
-                    case "Prince":
-                        //not working yet
+                    case "Prins":
+                        colliderMagia = UnityEngine.Object.Instantiate(Resources.Load("Personajes/004_Prins/obj_CollMag_Telequinesia")) as GameObject;
+                        colliderMagia.transform.position = __instance.gameObject.transform.position + new Vector3(0f, 0.5f, 0f);
+                        Utilites.SetVariable(__instance, "colliderMagia", colliderMagia);
+                        Utilites.SetVariable(__instance, "haciendoMagia", true);
                         break;
                     case "Yami":
                         //not working yet
@@ -219,7 +222,7 @@ namespace FlatworldMP
     {
         public static bool Prefix(TelequinesiaMover __instance)
         {
-            return true;
+            return false;
         }
 
     }

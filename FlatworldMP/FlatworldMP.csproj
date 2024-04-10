@@ -77,6 +77,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CameraController.cs" />
     <Compile Include="Multiplayer.cs" />
     <Compile Include="Patches.cs" />
     <Compile Include="PlayerController.cs" />

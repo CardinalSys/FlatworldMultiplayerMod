@@ -19,6 +19,8 @@ namespace FlatworldMP
         private FirstPlayer firstPlayer;
         private SecondPlayer secondPlayer;
 
+        private CameraController cameraController;
+
         private string[] badScenes = { "Default", "Intro", "SelectFile", "TitleScreen", "Configtitlescreen", "BootGame" };
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
@@ -28,6 +30,8 @@ namespace FlatworldMP
             firstPlayer = new FirstPlayer();
 
             secondPlayer = new SecondPlayer();
+
+            cameraController = new CameraController();
         }
 
 
@@ -48,6 +52,8 @@ namespace FlatworldMP
                 secondPlayer.Magic();
                 secondPlayer.CheckForStopMagic();
             }
+
+            cameraController.CheckDistance();
 
             base.OnUpdate();
         }

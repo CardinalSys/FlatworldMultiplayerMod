@@ -27,7 +27,7 @@ namespace FlatworldMP
 
         public static string GetPlayer(GameObject Player)
         {
-            string[] names = { "Aki", "Prince", "Yami", "Hikari" };
+            string[] names = { "Aki", "Prins", "Yami", "Hikari" };
 
             return names.FirstOrDefault(sub => Player.GetComponentsInChildren<Transform>().Any(x => x.name.Contains(sub)));
         }

@@ -16,8 +16,6 @@ namespace FlatworldMP
         public PlayerCTRL playerCtrl { get; set; }
         public GameObject playerObj { get; set; }
 
-        public Camera camera { get; set; }
-
         public KeyCode AttackKey;
         public KeyCode MagicKey;
 
@@ -83,7 +81,6 @@ namespace FlatworldMP
         {
             SetupController(KeyCode.O, KeyCode.P);
             Spawn();
-            SetupSecondCamera();
             //ResetPosition();
         }
 
@@ -114,23 +111,11 @@ namespace FlatworldMP
 
         }
 
-        private void SetupSecondCamera()
-        {
-            Camera mainCamera = Camera.main;
-            if (mainCamera != null)
-            {
-                Camera _camera = GameObject.Instantiate(mainCamera.gameObject).GetComponent<Camera>();
-
-                if (_camera != null)
-                    camera = _camera;
-            }
-        }
-
 
         public void ResetPosition()
         {
             playerObj.transform.position = new FirstPlayer().GetPlayer().transform.position;
-            camera.transform.position = playerObj.transform.position;
+            //camera.transform.position = playerObj.transform.position;
         }
 
         public void CheckForStopMagic()
